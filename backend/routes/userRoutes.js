@@ -1,13 +1,11 @@
 const express = require("express");
 const authMiddleware = require("../middlewares/authMiddleware"); // ✅ Correct import
-//const authMiddleware = require("../../middlewares/authMiddleware");
-
 const {
   registerController,
   loginController,
   forgotPasswordController,
   authController,
-  getAllPropertiesController,
+  getAllPropertiesController, // ✅ Added getAllPropertiesController
   bookingHandleController,
   getAllBookingsController,
 } = require("../controllers/userController");

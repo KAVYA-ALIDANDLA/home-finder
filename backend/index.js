@@ -1,42 +1,46 @@
 const express = require("express");
-const cors = require("cors");
 const dotenv = require("dotenv");
-const connectDB = require("./config/connect"); // Make sure connectDB is correctly set up
+const cors = require("cors");
+const path = require("path");
+const morgan = require("morgan");
+const connectionofDb = require("./config/connect.js");
 
-// ✅ Load environment variables before database connection
-dotenv.config();
-
-// ✅ Connect to MongoDB
-connectDB();
+// Import Routes
+const ownerRoutes = require("./routes/ownerRoutes");
+const userRoutes = require("./routes/userRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 
-// ✅ Enable CORS (Allow frontend to access backend)
-app.use(cors({
-  origin: "http://localhost:3000", // Allow requests from your React frontend
-  credentials: true, // Allow cookies and authentication headers if needed
-}));
+// ✅ Load environment variables
+dotenv.config();
 
-// ✅ Middleware
-app.use(express.json()); // Parse JSON request body
+// ✅ Connect to MongoDB
+connectionofDb();
 
-// ✅ Sample route (to check if backend is running)
-app.get("/", (req, res) => {
-  res.send("Backend is running 🚀");
+// ✅ Middleware Setup
+app.use(express.json());
+app.use(cors());
+app.use(morgan("dev")); // Logs API requests in the console (optional but useful)
+
+// ✅ Prevent API Caching (IMPORTANT: Add this before routes)
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
 });
 
-// ✅ Import and use routes
-const userRoutes = require("./routes/userRoutes"); // Make sure routes are correctly set up
-app.use("/api/user", userRoutes); // Adjust as per your routes
+// ✅ Static Files (For Serving Uploaded Images)
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ✅ Handle errors for unhandled promise rejections
-process.on("unhandledRejection", (err) => {
-  console.error("Unhandled Rejection:", err);
-  process.exit(1); // Exit process if there's an unhandled rejection
-});
+// ✅ Routes
+app.use("/api/owner", ownerRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/admin", adminRoutes);
 
-// ✅ Start the server
-const PORT = process.env.PORT || 8001;
+// ✅ Server Listening
+const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🚀 Server is running on port ${PORT}`);
 });

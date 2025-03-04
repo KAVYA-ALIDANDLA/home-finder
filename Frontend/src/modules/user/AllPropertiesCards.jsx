@@ -90,7 +90,8 @@ const AllPropertiesCards = ({ loggedIn }) => {
       <>
          {/* Filters Section */}
          <div className="mt-4 filter-container text-center">
-            <p className="mt-3">Filter By: </p>
+         <span className="mt-3">Filter By: </span>
+
             <input type="text" placeholder="Address" value={filterPropertyAddress} onChange={(e) => setPropertyAddress(e.target.value)} />
             <select value={filterPropertyAdType} onChange={(e) => setPropertyAdType(e.target.value)}>
                <option value="">All Ad Types</option>
@@ -111,22 +112,27 @@ const AllPropertiesCards = ({ loggedIn }) => {
                filteredProperties.map((property) => (
                   <Card border="dark" key={property._id} style={{ width: "18rem", marginLeft: 10 }}>
                      <Card.Body>
-                        <Card.Title>
-                           <img src={`http://localhost:8001${property.propertyImage[0]?.path}`} alt="property" />
-                        </Card.Title>
-                        <Card.Text>
-                           <p><b>Location:</b> {property.propertyAddress}</p>
-                           <p><b>Type:</b> {property.propertyType}</p>
-                           <p><b>Ad Type:</b> {property.propertyAdType}</p>
+                     <Card.Title>
+   <img
+      src={property.propertyImage?.length > 0 ? `http://localhost:8001${property.propertyImage[0].path}` : "/default-image.jpg"}
+      alt="property"
+   />
+</Card.Title>
 
-                           {loggedIn && (
-                              <>
-                                 <p><b>Owner Contact:</b> {property.ownerContact}</p>
-                                 <p><b>Availability:</b> {property.isAvailable}</p>
-                                 <p><b>Price:</b> Rs. {property.propertyAmt}</p>
-                              </>
-                           )}
-                        </Card.Text>
+<Card.Text>
+   <div><b>Location:</b> {property.propertyAddress}</div>
+   <div><b>Type:</b> {property.propertyType}</div>
+   <div><b>Ad Type:</b> {property.propertyAdType}</div>
+
+   {loggedIn && (
+      <>
+         <div><b>Owner Contact:</b> {property.ownerContact}</div>
+         <div><b>Availability:</b> {property.isAvailable}</div>
+         <div><b>Price:</b> Rs. {property.propertyAmt}</div>
+      </>
+   )}
+</Card.Text>
+
 
                         {/* Get Info Button */}
                         {!loggedIn ? (
@@ -146,15 +152,18 @@ const AllPropertiesCards = ({ loggedIn }) => {
                                        </Modal.Header>
                                        <Modal.Body>
                                           {/* Property Images */}
-                                          {property.propertyImage.length > 0 && (
-                                             <Carousel activeIndex={index} onSelect={setIndex}>
-                                                {property.propertyImage.map((image, idx) => (
-                                                   <Carousel.Item key={idx}>
-                                                      <img src={`http://localhost:8001${image.path}`} alt={`Image ${idx + 1}`} className="d-block w-100" />
-                                                   </Carousel.Item>
-                                                ))}
-                                             </Carousel>
-                                          )}
+                                          {property.propertyImage?.length > 0 ? (
+   <Carousel activeIndex={index} onSelect={setIndex}>
+      {property.propertyImage.map((image, idx) => (
+         <Carousel.Item key={idx}>
+            <img src={`http://localhost:8001${image.path}`} alt={`Image ${idx + 1}`} className="d-block w-100" />
+         </Carousel.Item>
+      ))}
+   </Carousel>
+) : (
+   <p>No images available</p>
+)}
+
 
                                           <div>
                                              <p><b>Owner Contact:</b> {property.ownerContact}</p>
