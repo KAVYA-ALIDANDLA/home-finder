@@ -1,5 +1,6 @@
 const Owner = require("../schemas/userModel"); // Import the Owner model
 const Property = require("../schemas/propertyModel");
+const Booking = require("../schemas/bookingModel"); // Import the Booking model
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -95,10 +96,21 @@ const getAllProperties = async (req, res) => {
     }
 };
 
+// ✅ Get All Bookings
+const getAllBookings = async (req, res) => {
+    try {
+        const bookings = await Booking.find();
+        res.status(200).json({ success: true, bookings });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error fetching bookings", error });
+    }
+};
+
 // ✅ Export All Controllers
 module.exports = {
     registerOwner, 
     loginOwner,
     postProperty,
-    getAllProperties, // Added function export
+    getAllProperties,
+    getAllBookings, // Added function export
 };

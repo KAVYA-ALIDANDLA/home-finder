@@ -1,6 +1,6 @@
 import axios from "axios";
 import React, { useState, useEffect } from "react";
-import { Button, Card, Modal, Carousel, Col, Form, InputGroup, Row } from "react-bootstrap";
+import { Button, Card, Modal, Carousel, Col, Form, Row } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { message } from "antd";
 
@@ -12,12 +12,9 @@ const AllPropertiesCards = ({ loggedIn }) => {
    const [filterPropertyAdType, setPropertyAdType] = useState("");
    const [filterPropertyAddress, setPropertyAddress] = useState("");
    const [propertyOpen, setPropertyOpen] = useState(null);
-   const [userDetails, setUserDetails] = useState({
-      fullName: "",
-      phone: "",
-   });
+   const [userDetails, setUserDetails] = useState({ fullName: "", phone: "" });
 
-   // Handle input change for user details
+   // Handle user input change
    const handleChange = (e) => {
       const { name, value } = e.target;
       setUserDetails({ ...userDetails, [name]: value });
@@ -34,9 +31,7 @@ const AllPropertiesCards = ({ loggedIn }) => {
    const getAllProperties = async () => {
       try {
          const res = await axios.get("http://localhost:8001/api/user/getAllProperties", {
-            headers: {
-               "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
          });
          setAllProperties(res.data.data);
       } catch (error) {
@@ -54,25 +49,39 @@ const AllPropertiesCards = ({ loggedIn }) => {
             return;
          }
 
-         const res = await axios.post(
+         if (!userDetails.fullName || !userDetails.phone) {
+            message.error("Please fill in your details before booking.");
+            return;
+         }
+
+         const response = await axios.post(
             `http://localhost:8001/api/user/bookinghandle/${propertyId}`,
-            { userDetails, status, ownerId },
+            { 
+               userDetails: { 
+                  fullName: userDetails.fullName, 
+                  phone: userDetails.phone 
+               }, 
+               userId: loggedIn?.userId, 
+               ownerId, 
+               status: "Pending" 
+            },
             {
                headers: {
+                  "Content-Type": "application/json",
                   Authorization: `Bearer ${token}`,
                },
             }
          );
 
-         if (res.data.success) {
-            message.success(res.data.message);
-            handleClose();
+         if (response.data.success) {
+            message.success("Property booked successfully!");
+            handleClose(); // Close modal after booking
          } else {
-            message.error(res.data.message);
+            message.error(response.data.message || "Failed to book property.");
          }
       } catch (error) {
-         console.error("Booking Error:", error);
-         message.error("Failed to book property. Try again.");
+         console.error("Booking Error:", error.message);
+         message.error("Something went wrong. Please try again.");
       }
    };
 
@@ -90,8 +99,7 @@ const AllPropertiesCards = ({ loggedIn }) => {
       <>
          {/* Filters Section */}
          <div className="mt-4 filter-container text-center">
-         <span className="mt-3">Filter By: </span>
-
+            <span className="mt-3">Filter By: </span>
             <input type="text" placeholder="Address" value={filterPropertyAddress} onChange={(e) => setPropertyAddress(e.target.value)} />
             <select value={filterPropertyAdType} onChange={(e) => setPropertyAdType(e.target.value)}>
                <option value="">All Ad Types</option>
@@ -112,27 +120,26 @@ const AllPropertiesCards = ({ loggedIn }) => {
                filteredProperties.map((property) => (
                   <Card border="dark" key={property._id} style={{ width: "18rem", marginLeft: 10 }}>
                      <Card.Body>
-                     <Card.Title>
-   <img
-      src={property.propertyImage?.length > 0 ? `http://localhost:8001${property.propertyImage[0].path}` : "/default-image.jpg"}
-      alt="property"
-   />
-</Card.Title>
+                        <Card.Title>
+                           <img
+                              src={property.propertyImage?.length > 0 ? `http://localhost:8001${property.propertyImage[0].path}` : "/default-image.jpg"}
+                              alt="property"
+                           />
+                        </Card.Title>
 
-<Card.Text>
-   <div><b>Location:</b> {property.propertyAddress}</div>
-   <div><b>Type:</b> {property.propertyType}</div>
-   <div><b>Ad Type:</b> {property.propertyAdType}</div>
+                        <Card.Text>
+                           <div><b>Location:</b> {property.propertyAddress}</div>
+                           <div><b>Type:</b> {property.propertyType}</div>
+                           <div><b>Ad Type:</b> {property.propertyAdType}</div>
 
-   {loggedIn && (
-      <>
-         <div><b>Owner Contact:</b> {property.ownerContact}</div>
-         <div><b>Availability:</b> {property.isAvailable}</div>
-         <div><b>Price:</b> Rs. {property.propertyAmt}</div>
-      </>
-   )}
-</Card.Text>
-
+                           {loggedIn && (
+                              <>
+                                 <div><b>Owner Contact:</b> {property.ownerContact}</div>
+                                 <div><b>Availability:</b> {property.isAvailable}</div>
+                                 <div><b>Price:</b> Rs. {property.propertyAmt}</div>
+                              </>
+                           )}
+                        </Card.Text>
 
                         {/* Get Info Button */}
                         {!loggedIn ? (
@@ -153,17 +160,16 @@ const AllPropertiesCards = ({ loggedIn }) => {
                                        <Modal.Body>
                                           {/* Property Images */}
                                           {property.propertyImage?.length > 0 ? (
-   <Carousel activeIndex={index} onSelect={setIndex}>
-      {property.propertyImage.map((image, idx) => (
-         <Carousel.Item key={idx}>
-            <img src={`http://localhost:8001${image.path}`} alt={`Image ${idx + 1}`} className="d-block w-100" />
-         </Carousel.Item>
-      ))}
-   </Carousel>
-) : (
-   <p>No images available</p>
-)}
-
+                                             <Carousel activeIndex={index} onSelect={setIndex}>
+                                                {property.propertyImage.map((image, idx) => (
+                                                   <Carousel.Item key={idx}>
+                                                      <img src={`http://localhost:8001${image.path}`} alt={`Image ${idx + 1}`} className="d-block w-100" />
+                                                   </Carousel.Item>
+                                                ))}
+                                             </Carousel>
+                                          ) : (
+                                             <p>No images available</p>
+                                          )}
 
                                           <div>
                                              <p><b>Owner Contact:</b> {property.ownerContact}</p>

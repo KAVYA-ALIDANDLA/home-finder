@@ -10,6 +10,7 @@ const ownerRoutes = require("./routes/ownerRoutes");
 const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 
+
 const app = express();
 
 // ✅ Load environment variables
@@ -38,6 +39,12 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/owner", ownerRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/owner", require("./routes/ownerRoutes"));
+
+// ✅ Default Route
+app.get("/", (req, res) => {
+  res.send("🏡 House Rental API is running...");
+});
 
 // ✅ Server Listening
 const PORT = process.env.PORT || 8000;

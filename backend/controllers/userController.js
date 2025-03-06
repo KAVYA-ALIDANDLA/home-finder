@@ -11,7 +11,7 @@ const registerController = async (req, res) => {
     const existsUser = await userSchema.findOne({ email: req.body.email });
 
     if (existsUser) {
-      return res.status(200).send({ message: "User already exists", success: false });
+      return res.status(200).json({ message: "User already exists", success: false });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -24,10 +24,10 @@ const registerController = async (req, res) => {
     const newUser = new userSchema({ ...req.body, granted });
     await newUser.save();
 
-    return res.status(201).send({ message: "Register Success", success: true });
+    return res.status(201).json({ message: "Register Success", success: true });
   } catch (error) {
-    console.error(error);
-    return res.status(500).send({ success: false, message: `${error.message}` });
+    console.error("Register Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -37,26 +37,26 @@ const loginController = async (req, res) => {
     const user = await userSchema.findOne({ email: req.body.email });
 
     if (!user) {
-      return res.status(200).send({ message: "User not found", success: false });
+      return res.status(200).json({ message: "User not found", success: false });
     }
 
     const isMatch = await bcrypt.compare(req.body.password, user.password);
     if (!isMatch) {
-      return res.status(200).send({ message: "Invalid email or password", success: false });
+      return res.status(200).json({ message: "Invalid email or password", success: false });
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
     user.password = undefined;
 
-    return res.status(200).send({
+    return res.status(200).json({
       message: "Login successful",
       success: true,
       token,
       user,
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).send({ success: false, message: `${error.message}` });
+    console.error("Login Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -67,17 +67,17 @@ const forgotPasswordController = async (req, res) => {
     const user = await userSchema.findOne({ email });
 
     if (!user) {
-      return res.status(200).send({ message: "User not found", success: false });
+      return res.status(200).json({ message: "User not found", success: false });
     }
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
 
     await user.save();
-    return res.status(200).send({ message: "Password changed successfully", success: true });
+    return res.status(200).json({ message: "Password changed successfully", success: true });
   } catch (error) {
-    console.error(error);
-    return res.status(500).send({ success: false, message: `${error.message}` });
+    console.error("Forgot Password Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -87,13 +87,13 @@ const authController = async (req, res) => {
     const user = await userSchema.findById(req.body.userId);
 
     if (!user) {
-      return res.status(200).send({ message: "User not found", success: false });
+      return res.status(200).json({ message: "User not found", success: false });
     }
 
-    return res.status(200).send({ success: true, data: user });
+    return res.status(200).json({ success: true, data: user });
   } catch (error) {
-    console.error(error);
-    return res.status(500).send({ message: "Auth error", success: false });
+    console.error("Auth Error:", error);
+    return res.status(500).json({ message: "Auth error", success: false });
   }
 };
 
@@ -101,54 +101,68 @@ const authController = async (req, res) => {
 const getAllPropertiesController = async (req, res) => {
   try {
     const allProperties = await propertySchema.find();
-    return res.status(200).send({ success: true, data: allProperties });
+    return res.status(200).json({ success: true, data: allProperties });
   } catch (error) {
-    console.error(error);
-    return res.status(500).send({ message: "Internal Server Error", success: false });
+    console.error("Get All Properties Error:", error);
+    return res.status(500).json({ message: "Internal Server Error", success: false });
   }
 };
 
-// ------------- Handle Booking -------------
+// ------------- Handle Property Booking -------------
 const bookingHandleController = async (req, res) => {
-  const { propertyId } = req.params;
-  const { userDetails, status, userId, ownerId } = req.body;
-
   try {
-    const booking = new bookingSchema({
-      propertyId, // Ensure this matches the model field name
-      userID: userId,
-      ownerID: ownerId,
-      userName: userDetails.fullName,
-      phone: userDetails.phone,
-      bookingStatus: status,
+    const { propertyID, userID } = req.body;
+
+    if (!propertyID || !userID) {
+      return res.status(400).json({ error: "Property ID and User ID are required" });
+    }
+
+    // Fetch property details to get ownerID
+    const property = await Property.findById(propertyID);
+    if (!property) {
+      return res.status(404).json({ error: "Property not found" });
+    }
+
+    const newBooking = new Booking({
+      propertyID,
+      ownerID: property.ownerID, // Ensure ownerID is retrieved from property
+      userID,
+      bookingStatus: 'pending',
     });
 
-    await booking.save();
-    return res.status(200).send({ success: true, message: "Booking status updated" });
+    await newBooking.save();
+    res.status(201).json({ message: "Booking created successfully", booking: newBooking });
   } catch (error) {
-    console.error("Error handling booking:", error);
-    return res.status(500).send({ success: false, message: "Error handling booking" });
+    console.error("Booking Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// ------------- Get All Bookings for User -------------
+// ------------- Get All Bookings for a User -------------
 const getAllBookingsController = async (req, res) => {
-  const { userId } = req.body;
-
-  if (!userId) {
-    return res.status(400).send({ success: false, message: "User ID is required" });
-  }
-
   try {
-    const getAllBookings = await bookingSchema.find();
-    const userBookings = getAllBookings.filter(
-      (booking) => booking.userID && booking.userID.toString() === userId
-    );
+    const { userId } = req.body;
 
-    return res.status(200).send({ success: true, data: userBookings });
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+
+    const userBookings = await bookingSchema.find({ userID: userId });
+    return res.status(200).json({ success: true, data: userBookings });
   } catch (error) {
-    console.error(error);
-    return res.status(500).send({ message: "Internal server error", success: false });
+    console.error("Get All Bookings Error:", error);
+    return res.status(500).json({ message: "Internal Server Error", success: false });
+  }
+};
+
+// ------------- Get All Bookings (Admin) -------------
+const getAllBookingsAdminController = async (req, res) => {
+  try {
+    const allBookings = await bookingSchema.find();
+    return res.status(200).json({ success: true, data: allBookings });
+  } catch (error) {
+    console.error("Get All Bookings Admin Error:", error);
+    return res.status(500).json({ message: "Internal Server Error", success: false });
   }
 };
 
@@ -160,4 +174,5 @@ module.exports = {
   getAllPropertiesController,
   bookingHandleController,
   getAllBookingsController,
+  getAllBookingsAdminController,
 };
