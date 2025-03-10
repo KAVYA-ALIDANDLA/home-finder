@@ -11,7 +11,9 @@ const registerController = async (req, res) => {
     const existsUser = await userSchema.findOne({ email: req.body.email });
 
     if (existsUser) {
-      return res.status(200).json({ message: "User already exists", success: false });
+      return res
+        .status(200)
+        .json({ message: "User already exists", success: false });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -37,15 +39,21 @@ const loginController = async (req, res) => {
     const user = await userSchema.findOne({ email: req.body.email });
 
     if (!user) {
-      return res.status(200).json({ message: "User not found", success: false });
+      return res
+        .status(200)
+        .json({ message: "User not found", success: false });
     }
 
     const isMatch = await bcrypt.compare(req.body.password, user.password);
     if (!isMatch) {
-      return res.status(200).json({ message: "Invalid email or password", success: false });
+      return res
+        .status(200)
+        .json({ message: "Invalid email or password", success: false });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
     user.password = undefined;
 
     return res.status(200).json({
@@ -67,14 +75,18 @@ const forgotPasswordController = async (req, res) => {
     const user = await userSchema.findOne({ email });
 
     if (!user) {
-      return res.status(200).json({ message: "User not found", success: false });
+      return res
+        .status(200)
+        .json({ message: "User not found", success: false });
     }
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
 
     await user.save();
-    return res.status(200).json({ message: "Password changed successfully", success: true });
+    return res
+      .status(200)
+      .json({ message: "Password changed successfully", success: true });
   } catch (error) {
     console.error("Forgot Password Error:", error);
     return res.status(500).json({ success: false, message: error.message });
@@ -84,10 +96,12 @@ const forgotPasswordController = async (req, res) => {
 // ------------- Authenticated User Data -------------
 const authController = async (req, res) => {
   try {
-    const user = await userSchema.findById(req.body.userId);
+    const user = await userSchema.findById(req.user.id);
 
     if (!user) {
-      return res.status(200).json({ message: "User not found", success: false });
+      return res
+        .status(200)
+        .json({ message: "User not found", success: false });
     }
 
     return res.status(200).json({ success: true, data: user });
@@ -104,54 +118,76 @@ const getAllPropertiesController = async (req, res) => {
     return res.status(200).json({ success: true, data: allProperties });
   } catch (error) {
     console.error("Get All Properties Error:", error);
-    return res.status(500).json({ message: "Internal Server Error", success: false });
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", success: false });
   }
 };
 
 // ------------- Handle Property Booking -------------
 const bookingHandleController = async (req, res) => {
   try {
-    const { propertyID, userID } = req.body;
+    const { propertyID } = req.body;
 
-    if (!propertyID || !userID) {
-      return res.status(400).json({ error: "Property ID and User ID are required" });
+    const userID = req.user.id; // ✅ Get user ID from authentication middleware
+    console.log("getuserid", userID);
+    if (!propertyID) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Property ID is required" });
     }
 
     // Fetch property details to get ownerID
-    const property = await Property.findById(propertyID);
+    const property = await propertySchema.findById(propertyID);
     if (!property) {
-      return res.status(404).json({ error: "Property not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Property not found" });
     }
-
-    const newBooking = new Booking({
+    console.log("getownerid", property);
+    const newBooking = new bookingSchema({
       propertyID,
-      ownerID: property.ownerID, // Ensure ownerID is retrieved from property
-      userID,
-      bookingStatus: 'pending',
+      ownerID: property.ownerID, // ✅ Fetch ownerID from the property model
+      userID, // ✅ Use userID from `req.user`
+      bookingStatus: "pending",
     });
 
     await newBooking.save();
-    res.status(201).json({ message: "Booking created successfully", booking: newBooking });
+    res.status(201).json({
+      success: true,
+      message: "Booking successful!",
+      booking: newBooking,
+    });
   } catch (error) {
     console.error("Booking Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 // ------------- Get All Bookings for a User -------------
 const getAllBookingsController = async (req, res) => {
   try {
-    const { userId } = req.body;
+    console.log("from allbookings");
+    const userID = req.user.id;
 
-    if (!userId) {
-      return res.status(400).json({ success: false, message: "User ID is required" });
+    if (!userID) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
     }
 
-    const userBookings = await bookingSchema.find({ userID: userId });
+    const userBookings = await bookingSchema
+      .find({ userID })
+      .populate("ownerID")
+      .populate("propertyID")
+      .populate("userID");
+    console.log("getuserbook", userBookings);
     return res.status(200).json({ success: true, data: userBookings });
   } catch (error) {
     console.error("Get All Bookings Error:", error);
-    return res.status(500).json({ message: "Internal Server Error", success: false });
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", success: false });
   }
 };
 
@@ -162,7 +198,9 @@ const getAllBookingsAdminController = async (req, res) => {
     return res.status(200).json({ success: true, data: allBookings });
   } catch (error) {
     console.error("Get All Bookings Admin Error:", error);
-    return res.status(500).json({ message: "Internal Server Error", success: false });
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", success: false });
   }
 };
 

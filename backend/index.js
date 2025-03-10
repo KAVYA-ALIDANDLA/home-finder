@@ -10,7 +10,6 @@ const ownerRoutes = require("./routes/ownerRoutes");
 const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 
-
 const app = express();
 
 // ✅ Load environment variables
@@ -21,9 +20,9 @@ connectionofDb();
 
 // ✅ Middleware Setup
 app.use(express.json());
-app.use(cors());
+//app.use(cors());
 app.use(morgan("dev")); // Logs API requests in the console (optional but useful)
-
+app.use(cors());
 // ✅ Prevent API Caching (IMPORTANT: Add this before routes)
 app.use((req, res, next) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -39,11 +38,22 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/owner", ownerRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/owner", require("./routes/ownerRoutes"));
 
-// ✅ Default Route
+// ✅ Default API Route
 app.get("/", (req, res) => {
   res.send("🏡 House Rental API is running...");
+});
+
+// 🚀 404 Error Handling Middleware
+app.use((req, res, next) => {
+  console.warn(`⚠️ 404 Not Found - ${req.originalUrl}`);
+  res.status(404).json({ success: false, message: "API endpoint not found" });
+});
+
+// 🚀 Global Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error(`❌ Server Error: ${err.message}`);
+  res.status(500).json({ success: false, message: "Internal Server Error" });
 });
 
 // ✅ Server Listening

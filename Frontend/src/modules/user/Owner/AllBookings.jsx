@@ -18,8 +18,12 @@ const AllProperty = () => {
          const response = await axios.get('http://localhost:8001/api/owner/getallbookings', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem("token")}` }
          });
+         console.log(response)
          if (response.data.success) {
+
+            console.log(response.data)
             setAllBookings(response.data.data);
+
          } else {
             message.error(response.data.message);
          }
@@ -34,11 +38,12 @@ const AllProperty = () => {
 
    const handleStatus = async (bookingId, propertyId, status) => {
       try {
-         const res = await axios.post('http://localhost:8001/api/owner/handlebookingstatus', { bookingId, propertyId, status }, {
+         const res = await axios.post('http://localhost:8001/api/owner/handleBooking', { bookingId, propertyId, status }, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem("token")}` }
          })
          if (res.data.success) {
             message.success(res.data.message)
+           
             getAllProperty()
          }
          else {

@@ -29,62 +29,61 @@ const AllPropertiesCards = ({ loggedIn }) => {
 
    // Fetch Properties from Backend
    const getAllProperties = async () => {
+      const token = localStorage.getItem("token");
+   
+      if (!token) {
+         console.error("No token found. Redirecting to login...");
+         message.error("Authentication required. Please log in.");
+         return;
+      }
+   
       try {
-         const res = await axios.get("http://localhost:8001/api/user/getAllProperties", {
-            headers: { "Content-Type": "application/json" },
+         const response = await axios.get(`http://localhost:8001/api/user/getAllProperties`, {
+            headers: { 'Authorization': `Bearer ${token}` }
          });
-         setAllProperties(res.data.data);
+   
+         if (response.data.success) {
+            setAllProperties(response.data.data);
+         } else {
+            message.error(response.data.message);
+         }
       } catch (error) {
          console.error("Error fetching properties:", error);
-         message.error("Failed to load properties. Please try again.");
+         message.error("Failed to fetch properties. Please try again.");
       }
    };
-
+   
    // Handle Property Booking
-   const handleBooking = async (status, propertyId, ownerId) => {
+   const handleBooking = async (propertyID) => {
+      const token = localStorage.getItem("token");
+      const userID = localStorage.getItem("userID"); // Ensure you store user ID on login
+   
+      if (!token) {
+         message.error("Authentication required. Please log in.");
+         return;
+      }
+   
       try {
-         const token = localStorage.getItem("token");
-         if (!token) {
-            message.error("You must be logged in to book a property.");
-            return;
-         }
-
-         if (!userDetails.fullName || !userDetails.phone) {
-            message.error("Please fill in your details before booking.");
-            return;
-         }
-
+         console.log("getallproper",propertyID,userID);
          const response = await axios.post(
-            `http://localhost:8001/api/user/bookinghandle/${propertyId}`,
-            { 
-               userDetails: { 
-                  fullName: userDetails.fullName, 
-                  phone: userDetails.phone 
-               }, 
-               userId: loggedIn?.userId, 
-               ownerId, 
-               status: "Pending" 
-            },
-            {
-               headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-               },
-            }
+            `http://localhost:8001/api/user/bookinghandle`, // ✅ No propertyID in URL
+            { propertyID }, // ✅ Send userID
+            { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
          );
-
+   
          if (response.data.success) {
-            message.success("Property booked successfully!");
-            handleClose(); // Close modal after booking
+            message.success("Booking successful!");
          } else {
-            message.error(response.data.message || "Failed to book property.");
+            message.error(response.data.message);
          }
       } catch (error) {
-         console.error("Booking Error:", error.message);
-         message.error("Something went wrong. Please try again.");
+         console.error("Booking Error:", error.response?.data || error);
+         message.error(error.response?.data?.error || "Booking failed. Please try again.");
       }
    };
-
+   
+    
+   
    useEffect(() => {
       getAllProperties();
    }, []);
@@ -181,7 +180,7 @@ const AllPropertiesCards = ({ loggedIn }) => {
 
                                           <hr />
                                           <h4>Your Details for Booking</h4>
-                                          <Form onSubmit={(e) => { e.preventDefault(); handleBooking("pending", property._id, property.ownerId); }}>
+                                          <Form onSubmit={(e) => { e.preventDefault(); handleBooking( property._id); }}>
                                              <Row className="mb-3">
                                                 <Col md="6">
                                                    <Form.Label>Full Name</Form.Label>

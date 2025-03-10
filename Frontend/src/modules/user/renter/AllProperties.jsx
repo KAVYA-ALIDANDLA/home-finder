@@ -14,10 +14,10 @@ const AllProperty = () => {
 
    const getAllProperty = async () => {
       try {
-         const response = await axios.get(`http://localhost:8001/api/user/getallbookings`, {
+         const response = await axios.get(`http://localhost:8001/api/user/getAllProperties`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem("token")}` }
          });
-
+         
          if (response.data.success) {
             setAllProperties(response.data.data);
          } else {

@@ -68,6 +68,7 @@ const postProperty = async (req, res) => {
             propertyAmt,
             additionalInfo,
             propertyImages,
+            ownerID:req.user.id
         });
 
         await newProperty.save();

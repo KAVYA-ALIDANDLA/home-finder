@@ -44,6 +44,7 @@ function AddProperty() {
 
       try {
          const token = localStorage.getItem('token');
+         console.log("add property-",token)
          const response = await axios.post('http://localhost:8001/api/owner/postproperty', formData, {
             headers: {
                Authorization: `Bearer ${token}`,
