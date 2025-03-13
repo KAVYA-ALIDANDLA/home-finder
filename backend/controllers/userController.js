@@ -128,9 +128,8 @@ const getAllPropertiesController = async (req, res) => {
 const bookingHandleController = async (req, res) => {
   try {
     const { propertyID } = req.body;
+    const userID = req.user.id; // Get user ID from authentication middleware
 
-    const userID = req.user.id; // ✅ Get user ID from authentication middleware
-    console.log("getuserid", userID);
     if (!propertyID) {
       return res
         .status(400)
@@ -144,15 +143,28 @@ const bookingHandleController = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Property not found" });
     }
-    console.log("getownerid", property);
+
+    // Check if the property is already booked
+    if (!property.isAvailable) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Property is already booked" });
+    }
+
+    // Create a new booking
     const newBooking = new bookingSchema({
       propertyID,
-      ownerID: property.ownerID, // ✅ Fetch ownerID from the property model
-      userID, // ✅ Use userID from `req.user`
+      ownerID: property.ownerID, // Fetch ownerID from the property model
+      userID, // Use userID from `req.user`
       bookingStatus: "pending",
     });
 
     await newBooking.save();
+
+    // ✅ Update property availability to false
+    property.isAvailable = false;
+    await property.save();
+
     res.status(201).json({
       success: true,
       message: "Booking successful!",
